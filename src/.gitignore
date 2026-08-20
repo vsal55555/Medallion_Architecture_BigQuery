@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+
+# Large data files
+*.csv
+*.parquet
+
+# Keep small schema/config files if neededs
