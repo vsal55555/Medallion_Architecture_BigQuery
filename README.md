@@ -2,6 +2,7 @@
 
 ## Project Overview
 
+Remittance Analytics Platform using BigQuery Sandbox, Medallion Architecture, and Looker Studio.
 This project demonstrates an end-to-end Data Engineering solution for remittance transaction analytics using:
 
 - SQL Server (Source System)
@@ -15,13 +16,16 @@ The objective is to ingest raw remittance transaction data, transform and standa
 
 ---
 
-# Architecture
+# Architecture (Simple Flow)
 
 ```text
 SQL Server
     │
     ▼
-CSV Export
+Python
+    │
+    ▼
+Parquet Export
     │
     ▼
 BigQuery Sandbox
@@ -60,6 +64,137 @@ Agent Dashboard
 Corridor Dashboard
 Commission Dashboard
 ```
+
+## Data Architecture
+
+```text
+                 SQL Server
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+          ▼                     ▼
+   Data Extraction       Metadata Extraction
+          │                     │
+          ▼                     ▼
+   transactions.parquet   schema_metadata.json
+          │                     │
+          └──────────┬──────────┘
+                     │
+                     ▼
+           Cloud Data Platform
+```
+
+---
+
+## Architecture Overview
+
+This architecture separates **data extraction** and **metadata extraction** from the source database.
+
+### Data Extraction
+
+The data extraction process retrieves transactional records from SQL Server and stores them in a highly optimized columnar format.
+
+**Output:**
+
+```text
+transactions.parquet
+```
+
+Benefits:
+
+- Smaller file size
+- Faster query performance
+- Preserves data types
+- Cloud analytics optimized
+
+---
+
+### Metadata Extraction
+
+The metadata extraction process captures schema information directly from the source system.
+
+**Output:**
+
+```text
+schema_metadata.json
+```
+
+Typical metadata includes:
+
+- Table Name
+- Column Names
+- Data Types
+- Length
+- Precision
+- Scale
+- Nullable Flag
+
+Example:
+
+```json
+{
+  "table_name": "remittance_transactions",
+  "columns": [
+    {
+      "column_name": "Tranno",
+      "data_type": "INT"
+    },
+    {
+      "column_name": "paidAmt",
+      "data_type": "MONEY"
+    }
+  ]
+}
+```
+
+Benefits:
+
+- Data Catalog Creation
+- Data Lineage
+- Schema Drift Detection
+- Automated Documentation
+
+---
+
+## Parquet Storage Layer
+
+The extracted data is stored as Parquet files.
+
+### Example
+
+```text
+data/
+└── parquet/
+    ├── transactions_2024.parquet
+    ├── transactions_2025.parquet
+    └── transactions_2026.parquet
+```
+
+Advantages:
+
+- Columnar Storage
+- Compression
+- Schema Preservation
+- High Performance Analytics
+
+---
+
+## Metadata Repository
+
+Metadata files are stored alongside the data files.
+
+### Example
+
+```text
+metadata/
+└── schema_metadata.json
+```
+
+This allows:
+
+- Schema Validation
+- Data Governance
+- Automated Data Dictionary Generation
 
 # Tech Stack
 
@@ -122,11 +257,42 @@ The source dataset contains remittance transaction data including:
 
 # Medallion Architecture
 
-## Bronze Layer
+Medallion Architecture is a data design pattern that organizes data into layers as it moves from raw data to business-ready data.
+The three layers are:
+
+```text
+Bronze
+   ↓
+Silver
+   ↓
+Gold
+```
+
+Think of it as:
+
+```text
+Raw Data
+   ↓
+Clean Data
+   ↓
+Business Data
+```
+
+## Bronze Layer(Raw)
+
+- No cleaning.
+- No transformations.
+- No business rules.
 
 ### Purpose
 
 Store raw transaction data exactly as received from the source system.
+
+#### Benefits
+
+- Keeps original data untouched
+- Easy recovery if transformations fail
+- Provides audit trail
 
 ### Dataset
 
@@ -143,7 +309,8 @@ raw_remittance_transactions
 ### Activities
 
 - Export data from SQL Server
-- Upload CSV files into BigQuery Sandbox
+- Upload parquet file into BigQuery Sandbox
+- Parquet is a modern analytics file format designed for big data which internally stored column-by-column. This is called Columnar Storage. In contrast with csv, which Stores data row-by-row.
 - Preserve original schema and source records
 - No transformations applied
 
@@ -157,7 +324,7 @@ LIMIT 100;
 
 ---
 
-## Silver Layer
+## Silver Layer (Cleaned)
 
 ### Purpose
 
@@ -214,6 +381,20 @@ silver.dim_customer
 #### Data Privacy Implementation
 
 Sensitive information was masked before exposing to reporting users.
+
+##### Protected Fields
+
+- Sender Phone
+- Sender Email
+- Sender Passport
+- Receiver Phone
+- Receiver Email
+- Receiver ID
+
+##### Compliance Benefits
+
+- Reduced PII exposure
+- Safer analytical environment
 
 ##### Phone Number Masking
 
@@ -295,7 +476,7 @@ PAID
 
 ---
 
-# Gold Layer
+# Gold Layer (Business)
 
 ## Purpose
 
@@ -394,3 +575,38 @@ gold.commission_summary
 - IME Commission
 - Bank Commission
 - Sender
+
+---
+
+## Project Outcomes
+
+Successfully built:
+
+- Cloud Data Warehouse using BigQuery Sandbox
+- Medallion Architecture(Bronze, Silver, Gold Layers)
+- Data Cleaning & Standardization
+- PII Masking
+- Financial Analytics and Executive Reporting
+- Interactive Looker Studio Dashboards
+
+---
+
+## Future Enhancements
+
+- Automated ingestion using Cloud Functions
+- dbt transformations
+- Apache Airflow orchestration
+- Real-time streaming ingestion
+- Data Quality Monitoring
+- CI/CD deployment
+- Infrastructure as Code (Terraform)
+
+---
+
+## 👨‍💻 Author
+
+**Bishal Shrestha**
+
+Data Engineering Capstone Project
+
+---
